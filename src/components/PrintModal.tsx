@@ -8,6 +8,43 @@ interface Props {
   onClose: () => void;
 }
 
+const ANCHO_TICKET = 32; // caracteres por linea en papel de 58mm
+
+function centrar(texto: string): string {
+  const espacios = Math.max(0, Math.floor((ANCHO_TICKET - texto.length) / 2));
+  return " ".repeat(espacios) + texto;
+}
+
+function construirTextoTicket(pedido: Pedido, nombreNegocio: string): string {
+  const linea = "-".repeat(ANCHO_TICKET);
+  let t = "";
+  t += centrar("COMANDA") + "\n";
+  t += centrar(nombreNegocio) + "\n";
+  t += linea + "\n";
+  t += `Folio: #${pedido.folio}\n`;
+  t += `Cliente: ${pedido.cliente}\n`;
+  t += `Tel: ....${pedido.telefono}\n`;
+  t += linea + "\n";
+  for (const i of pedido.items) {
+    t += `${i.cantidad}x ${i.producto}\n`;
+    if (i.mods) t += `   ${i.mods}\n`;
+  }
+  t += linea + "\n";
+  t += `TOTAL: $${pedido.total}\n`;
+  t += linea + "\n";
+  if (pedido.direccion) t += `${pedido.direccion}\n`;
+  if (pedido.nota) t += `Nota: ${pedido.nota}\n`;
+  t += "\n\n\n";
+  return t;
+}
+
+function imprimirEnRawBT(texto: string) {
+  window.location.href =
+    "intent:" +
+    encodeURIComponent(texto) +
+    "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+}
+
 export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
   if (!pedido) return null;
 
@@ -73,7 +110,10 @@ export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
           <button className="modal-close" onClick={onClose}>
             Cerrar
           </button>
-          <button className="modal-print" onClick={() => window.print()}>
+          <button
+            className="modal-print"
+            onClick={() => imprimirEnRawBT(construirTextoTicket(pedido, nombreNegocio))}
+          >
             🖨️ Imprimir
           </button>
         </div>
