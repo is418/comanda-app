@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BluetoothDevice } from "@kduma-autoid/capacitor-bluetooth-printer";
-import { listarDispositivos } from "@/lib/printer";
+import { listarDispositivos, imprimirEnDireccion } from "@/lib/printer";
 import {
   obtenerEstaciones,
   guardarEstaciones,
@@ -24,6 +24,8 @@ export function EstacionesModal({ productos, onClose }: Props) {
   const [buscando, setBuscando] = useState(false);
   const [error, setError] = useState("");
   const [nombreNueva, setNombreNueva] = useState("");
+  const [probando, setProbando] = useState<string | null>(null);
+  const [resultadoPrueba, setResultadoPrueba] = useState<Record<string, string>>({});
 
   async function buscarImpresoras() {
     setBuscando(true);
@@ -71,6 +73,22 @@ export function EstacionesModal({ productos, onClose }: Props) {
     const actualizado = { ...mapa, [producto]: estacionId };
     setMapa(actualizado);
     guardarMapaProductos(actualizado);
+  }
+
+  async function probarImpresora(est: Estacion) {
+    if (!est.impresora) return;
+    setProbando(est.id);
+    setResultadoPrueba((prev) => ({ ...prev, [est.id]: "" }));
+    const hora = new Date().toLocaleTimeString("es-MX");
+    const texto = `\n*** PRUEBA DE IMPRESION ***\n\nEstacion: ${est.nombre}\nHora: ${hora}\n\nSi ves esto, esta impresora\nes la de "${est.nombre}".\n\n\n`;
+    try {
+      await imprimirEnDireccion(est.impresora, texto);
+      setResultadoPrueba((prev) => ({ ...prev, [est.id]: "ok" }));
+    } catch {
+      setResultadoPrueba((prev) => ({ ...prev, [est.id]: "error" }));
+    } finally {
+      setProbando(null);
+    }
   }
 
   return (
@@ -151,21 +169,41 @@ export function EstacionesModal({ productos, onClose }: Props) {
                 Es la Caja (imprime el ticket completo con el total)
               </label>
 
-              <select
-                value={est.impresora}
-                onChange={(e) => actualizarEstacion(est.id, { impresora: e.target.value })}
-                style={{ width: "100%", marginTop: 8, fontSize: 11.5, padding: "6px 8px" }}
-              >
-                <option value="">-- Elegir impresora --</option>
-                {dispositivos.map((d) => (
-                  <option key={d.address} value={d.address}>
-                    {d.name || d.address}
-                  </option>
-                ))}
-                {est.impresora && !dispositivos.find((d) => d.address === est.impresora) ? (
-                  <option value={est.impresora}>{est.impresora} (guardada)</option>
-                ) : null}
-              </select>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <select
+                  value={est.impresora}
+                  onChange={(e) => actualizarEstacion(est.id, { impresora: e.target.value })}
+                  style={{ flex: 1, fontSize: 11.5, padding: "6px 8px" }}
+                >
+                  <option value="">-- Elegir impresora --</option>
+                  {dispositivos.map((d) => (
+                    <option key={d.address} value={d.address}>
+                      {d.name || d.address}
+                    </option>
+                  ))}
+                  {est.impresora && !dispositivos.find((d) => d.address === est.impresora) ? (
+                    <option value={est.impresora}>{est.impresora} (guardada)</option>
+                  ) : null}
+                </select>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => probarImpresora(est)}
+                  disabled={!est.impresora || probando === est.id}
+                  style={{ fontSize: 11, padding: "6px 10px", whiteSpace: "nowrap" }}
+                >
+                  {probando === est.id ? "..." : "🖨️ Probar"}
+                </button>
+              </div>
+              {resultadoPrueba[est.id] === "ok" ? (
+                <div style={{ fontSize: 10.5, color: "var(--green)", marginTop: 4 }}>
+                  Enviado — revisa cual impresora imprimio.
+                </div>
+              ) : null}
+              {resultadoPrueba[est.id] === "error" ? (
+                <div style={{ fontSize: 10.5, color: "#b23a2b", marginTop: 4 }}>
+                  No se pudo imprimir en esta direccion.
+                </div>
+              ) : null}
             </div>
           ))}
 
