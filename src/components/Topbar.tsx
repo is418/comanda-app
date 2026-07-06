@@ -8,6 +8,7 @@ interface Props {
   sonidoActivo: boolean;
   onToggleSonido: () => void;
   onSignOut: () => void;
+  onConfigurarImpresora?: () => void;
 }
 
 export function Topbar({
@@ -16,6 +17,7 @@ export function Topbar({
   sonidoActivo,
   onToggleSonido,
   onSignOut,
+  onConfigurarImpresora,
 }: Props) {
   const [hora, setHora] = useState("--:--:--");
 
@@ -55,6 +57,15 @@ export function Topbar({
         >
           {sonidoActivo ? "🔔" : "🔕"}
         </button>
+        {onConfigurarImpresora ? (
+          <button
+            className="sound-toggle"
+            title="Configurar impresora"
+            onClick={onConfigurarImpresora}
+          >
+            🖨️
+          </button>
+        ) : null}
         <div className="clock">{hora}</div>
         <button className="signout-btn" onClick={onSignOut}>
           Cerrar sesión

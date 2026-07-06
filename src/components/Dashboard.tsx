@@ -17,6 +17,8 @@ import { StatsStrip } from "./StatsStrip";
 import { Toolbar } from "./Toolbar";
 import { Column } from "./Column";
 import { PrintModal } from "./PrintModal";
+import { PrinterSettingsModal } from "./PrinterSettingsModal";
+import { esAppNativa } from "@/lib/printer";
 
 const NOMBRE_NEGOCIO = "Taquería México Lindo";
 
@@ -33,6 +35,7 @@ export function Dashboard() {
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
   const [printId, setPrintId] = useState<number | null>(null);
   const [conectado, setConectado] = useState(false);
+  const [mostrarConfigImpresora, setMostrarConfigImpresora] = useState(false);
 
   const idsConocidos = useRef<Set<number>>(new Set());
   const primeraCarga = useRef(true);
@@ -170,6 +173,9 @@ export function Dashboard() {
         sonidoActivo={sonidoActivo}
         onToggleSonido={() => setSonidoActivo((v) => !v)}
         onSignOut={onSignOut}
+        onConfigurarImpresora={
+          esAppNativa() ? () => setMostrarConfigImpresora(true) : undefined
+        }
       />
 
       <StatsStrip
@@ -260,6 +266,10 @@ export function Dashboard() {
         nombreNegocio={NOMBRE_NEGOCIO}
         onClose={() => setPrintId(null)}
       />
+
+      {mostrarConfigImpresora ? (
+        <PrinterSettingsModal onClose={() => setMostrarConfigImpresora(false)} />
+      ) : null}
     </>
   );
 }

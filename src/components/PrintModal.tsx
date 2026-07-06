@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Pedido } from "@/types/pedido";
+import { esAppNativa, imprimirTexto } from "@/lib/printer";
 
 interface Props {
   pedido: Pedido | null;
@@ -46,7 +48,34 @@ function imprimirEnRawBT(texto: string) {
 }
 
 export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const [errorImpresion, setErrorImpresion] = useState("");
+
   if (!pedido) return null;
+
+  async function manejarImprimir() {
+    const texto = construirTextoTicket(pedido!, nombreNegocio);
+    setErrorImpresion("");
+
+    if (esAppNativa()) {
+      setImprimiendo(true);
+      try {
+        await imprimirTexto(texto);
+      } catch (e) {
+        if (e instanceof Error && e.message === "NO_PRINTER_CONFIGURED") {
+          setErrorImpresion(
+            "No hay impresora configurada. Ve a Configurar impresora primero."
+          );
+        } else {
+          setErrorImpresion("No se pudo imprimir. Revisa el Bluetooth de la impresora.");
+        }
+      } finally {
+        setImprimiendo(false);
+      }
+    } else {
+      imprimirEnRawBT(texto);
+    }
+  }
 
   return (
     <div
@@ -106,15 +135,17 @@ export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
             </div>
           ) : null}
         </div>
+        {errorImpresion ? (
+          <div style={{ padding: "0 18px", fontSize: 11.5, color: "#b23a2b" }}>
+            {errorImpresion}
+          </div>
+        ) : null}
         <div className="modal-actions">
           <button className="modal-close" onClick={onClose}>
             Cerrar
           </button>
-          <button
-            className="modal-print"
-            onClick={() => imprimirEnRawBT(construirTextoTicket(pedido, nombreNegocio))}
-          >
-            🖨️ Imprimir
+          <button className="modal-print" onClick={manejarImprimir} disabled={imprimiendo}>
+            {imprimiendo ? "Imprimiendo..." : "🖨️ Imprimir"}
           </button>
         </div>
       </div>
