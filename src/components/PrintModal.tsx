@@ -2,68 +2,13 @@
 
 import { useState } from "react";
 import { Pedido } from "@/types/pedido";
-import { esAppNativa, imprimirTexto, imprimirEnDireccion } from "@/lib/printer";
-import { obtenerEstaciones, obtenerMapaProductos } from "@/lib/estaciones";
+import { esAppNativa } from "@/lib/printer";
+import { construirTicketCaja, imprimirEnCocina, imprimirEnCaja } from "@/lib/imprimirPedido";
 
 interface Props {
   pedido: Pedido | null;
   nombreNegocio: string;
   onClose: () => void;
-}
-
-const ANCHO_TICKET = 32; // caracteres por linea en papel de 58mm
-
-function centrar(texto: string): string {
-  const espacios = Math.max(0, Math.floor((ANCHO_TICKET - texto.length) / 2));
-  return " ".repeat(espacios) + texto;
-}
-
-function encabezado(pedido: Pedido, nombreNegocio: string): string {
-  const linea = "-".repeat(ANCHO_TICKET);
-  let t = "";
-  t += centrar("COMANDA") + "\n";
-  t += centrar(nombreNegocio) + "\n";
-  t += linea + "\n";
-  t += `Folio: #${pedido.folio}\n`;
-  t += `Cliente: ${pedido.cliente}\n`;
-  t += `Tel: ....${pedido.telefono}\n`;
-  t += linea + "\n";
-  return t;
-}
-
-function construirTicketCaja(pedido: Pedido, nombreNegocio: string): string {
-  const linea = "-".repeat(ANCHO_TICKET);
-  let t = encabezado(pedido, nombreNegocio);
-  for (const i of pedido.items) {
-    t += `${i.cantidad}x ${i.producto}\n`;
-    if (i.mods) t += `   ${i.mods}\n`;
-  }
-  t += linea + "\n";
-  t += `TOTAL: $${pedido.total}\n`;
-  t += linea + "\n";
-  if (pedido.direccion) t += `${pedido.direccion}\n`;
-  if (pedido.nota) t += `Nota: ${pedido.nota}\n`;
-  t += "\n\n\n";
-  return t;
-}
-
-function construirTicketEstacion(
-  pedido: Pedido,
-  nombreNegocio: string,
-  nombreEstacion: string,
-  items: Pedido["items"]
-): string {
-  const linea = "-".repeat(ANCHO_TICKET);
-  let t = encabezado(pedido, nombreNegocio);
-  t += centrar(nombreEstacion.toUpperCase()) + "\n";
-  t += linea + "\n";
-  for (const i of items) {
-    t += `${i.cantidad}x ${i.producto}\n`;
-    if (i.mods) t += `   >> ${i.mods}\n`;
-  }
-  if (pedido.nota) t += `\nNota: ${pedido.nota}\n`;
-  t += "\n\n\n";
-  return t;
 }
 
 function imprimirEnRawBT(texto: string) {
@@ -87,70 +32,21 @@ export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
       return;
     }
 
-    const estaciones = obtenerEstaciones();
-
-    if (estaciones.length === 0) {
-      // Sin estaciones configuradas: comportamiento simple de antes (una sola impresora).
-      setImprimiendo(true);
-      try {
-        await imprimirTexto(construirTicketCaja(pedido!, nombreNegocio));
-      } catch (e) {
-        if (e instanceof Error && e.message === "NO_PRINTER_CONFIGURED") {
-          setErrorImpresion(
-            "No hay impresora configurada. Ve a Configurar impresora primero."
-          );
-        } else {
-          setErrorImpresion("No se pudo imprimir. Revisa el Bluetooth de la impresora.");
-        }
-      } finally {
-        setImprimiendo(false);
-      }
-      return;
-    }
-
-    // Con estaciones configuradas: repartir productos por estacion.
     setImprimiendo(true);
-    const mapa = obtenerMapaProductos();
-    const fallas: string[] = [];
-    let huboSinAsignar = false;
-
     try {
-      const porEstacion = new Map<string, Pedido["items"]>();
-      for (const item of pedido!.items) {
-        const estId = mapa[item.producto];
-        if (!estId) {
-          huboSinAsignar = true;
-          continue;
-        }
-        if (!porEstacion.has(estId)) porEstacion.set(estId, []);
-        porEstacion.get(estId)!.push(item);
-      }
+      const resultadoCocina = await imprimirEnCocina(pedido!, nombreNegocio);
+      const resultadoCaja = await imprimirEnCaja(pedido!, nombreNegocio);
 
-      for (const est of estaciones.filter((e) => !e.esCaja)) {
-        const items = porEstacion.get(est.id);
-        if (!items || items.length === 0 || !est.impresora) continue;
-        try {
-          await imprimirEnDireccion(
-            est.impresora,
-            construirTicketEstacion(pedido!, nombreNegocio, est.nombre, items)
-          );
-        } catch {
-          fallas.push(est.nombre);
-        }
-      }
+      const fallas = [...resultadoCocina.fallas];
+      if (resultadoCaja.huboImpresoraCaja && !resultadoCaja.ok) fallas.push("Caja");
 
-      const caja = estaciones.find((e) => e.esCaja && e.impresora);
-      if (caja) {
-        try {
-          await imprimirEnDireccion(caja.impresora, construirTicketCaja(pedido!, nombreNegocio));
-        } catch {
-          fallas.push(caja.nombre);
-        }
-      }
-
-      if (fallas.length > 0) {
+      if (!resultadoCocina.huboEstaciones && !resultadoCaja.huboImpresoraCaja) {
+        setErrorImpresion(
+          "No hay ninguna impresora configurada. Ve a Estaciones para configurar una."
+        );
+      } else if (fallas.length > 0) {
         setErrorImpresion(`No se pudo imprimir en: ${fallas.join(", ")}.`);
-      } else if (huboSinAsignar) {
+      } else if (resultadoCocina.sinAsignar) {
         setErrorImpresion(
           "Algunos productos no tienen estacion asignada (ve a Estaciones para asignarlos)."
         );

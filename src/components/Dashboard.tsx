@@ -19,6 +19,7 @@ import { Column } from "./Column";
 import { PrintModal } from "./PrintModal";
 import { EstacionesModal } from "./EstacionesModal";
 import { esAppNativa } from "@/lib/printer";
+import { imprimirEnCocina, imprimirEnCaja } from "@/lib/imprimirPedido";
 
 const NOMBRE_NEGOCIO = "Taquería México Lindo";
 
@@ -105,11 +106,24 @@ export function Dashboard() {
   }
 
   const onAccept = (id: number) =>
-    withBusy(id, () => actualizarEstadoPedido(id, "en_preparacion"));
+    withBusy(id, () => actualizarEstadoPedido(id, "en_preparacion")).then(() => {
+      // Al aceptar el pedido, se manda a imprimir de una vez en las
+      // estaciones de cocina (no en caja, esa se imprime hasta que este listo).
+      if (esAppNativa()) {
+        const pedido = pedidos.find((p) => p.id === id);
+        if (pedido) imprimirEnCocina(pedido, NOMBRE_NEGOCIO).catch(() => {});
+      }
+    });
   const onReject = (id: number) =>
     withBusy(id, () => actualizarEstadoPedido(id, "cancelado"));
   const onReady = (id: number) =>
-    withBusy(id, () => actualizarEstadoPedido(id, "listo"));
+    withBusy(id, () => actualizarEstadoPedido(id, "listo")).then(() => {
+      // Al marcar listo, se manda a imprimir el ticket de caja (para cobrar/entregar).
+      if (esAppNativa()) {
+        const pedido = pedidos.find((p) => p.id === id);
+        if (pedido) imprimirEnCaja(pedido, NOMBRE_NEGOCIO).catch(() => {});
+      }
+    });
   const onDone = (id: number) =>
     withBusy(id, () => actualizarEstadoPedido(id, "entregado"));
   const onSaveNota = (id: number, nota: string) =>
