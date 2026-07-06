@@ -28,3 +28,7 @@ export async function imprimirTexto(texto: string) {
   }
   await BluetoothPrinter.connectAndPrint({ address, data: texto });
 }
+
+export async function imprimirEnDireccion(address: string, texto: string) {
+  await BluetoothPrinter.connectAndPrint({ address, data: texto });
+}

@@ -17,7 +17,7 @@ import { StatsStrip } from "./StatsStrip";
 import { Toolbar } from "./Toolbar";
 import { Column } from "./Column";
 import { PrintModal } from "./PrintModal";
-import { PrinterSettingsModal } from "./PrinterSettingsModal";
+import { EstacionesModal } from "./EstacionesModal";
 import { esAppNativa } from "@/lib/printer";
 
 const NOMBRE_NEGOCIO = "Taquería México Lindo";
@@ -35,7 +35,7 @@ export function Dashboard() {
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
   const [printId, setPrintId] = useState<number | null>(null);
   const [conectado, setConectado] = useState(false);
-  const [mostrarConfigImpresora, setMostrarConfigImpresora] = useState(false);
+  const [mostrarEstaciones, setMostrarEstaciones] = useState(false);
 
   const idsConocidos = useRef<Set<number>>(new Set());
   const primeraCarga = useRef(true);
@@ -164,6 +164,11 @@ export function Dashboard() {
 
   const ventaTotal = pedidos.reduce((s, p) => s + (p.total || 0), 0);
   const pedidoImprimir = pedidos.find((p) => p.id === printId) || null;
+  const productosConocidos = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach((p) => p.items.forEach((i) => set.add(i.producto)));
+    return Array.from(set).sort();
+  }, [pedidos]);
 
   return (
     <>
@@ -174,7 +179,7 @@ export function Dashboard() {
         onToggleSonido={() => setSonidoActivo((v) => !v)}
         onSignOut={onSignOut}
         onConfigurarImpresora={
-          esAppNativa() ? () => setMostrarConfigImpresora(true) : undefined
+          esAppNativa() ? () => setMostrarEstaciones(true) : undefined
         }
       />
 
@@ -267,8 +272,11 @@ export function Dashboard() {
         onClose={() => setPrintId(null)}
       />
 
-      {mostrarConfigImpresora ? (
-        <PrinterSettingsModal onClose={() => setMostrarConfigImpresora(false)} />
+      {mostrarEstaciones ? (
+        <EstacionesModal
+          productos={productosConocidos}
+          onClose={() => setMostrarEstaciones(false)}
+        />
       ) : null}
     </>
   );

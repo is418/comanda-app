@@ -60,7 +60,7 @@ export function Topbar({
         {onConfigurarImpresora ? (
           <button
             className="sound-toggle"
-            title="Configurar impresora"
+            title="Configurar estaciones de impresion"
             onClick={onConfigurarImpresora}
           >
             🖨️
