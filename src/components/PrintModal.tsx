@@ -32,9 +32,16 @@ export function PrintModal({ pedido, nombreNegocio, onClose }: Props) {
       return;
     }
 
+    // Una vez que el pedido ya esta listo o entregado, la cocina ya lo hizo
+    // (le llego su ticket al aceptar) - reimprimir manualmente en ese punto
+    // solo debe repetir el ticket de Caja, no volver a mandar a cocina.
+    const soloCaja = pedido!.estado === "listo" || pedido!.estado === "entregado";
+
     setImprimiendo(true);
     try {
-      const resultadoCocina = await imprimirEnCocina(pedido!, nombreNegocio);
+      const resultadoCocina = soloCaja
+        ? { fallas: [], sinAsignar: false, huboEstaciones: true }
+        : await imprimirEnCocina(pedido!, nombreNegocio);
       const resultadoCaja = await imprimirEnCaja(pedido!, nombreNegocio);
 
       const fallas = [...resultadoCocina.fallas];
