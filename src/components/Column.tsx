@@ -19,6 +19,7 @@ interface Props {
   onDone: (id: number) => void;
   onPrint: (id: number) => void;
   onSaveNota: (id: number, nota: string) => void;
+  onAsignarRepartidor?: (id: number) => void;
 }
 
 export function Column({
@@ -35,6 +36,7 @@ export function Column({
   onDone,
   onPrint,
   onSaveNota,
+  onAsignarRepartidor,
 }: Props) {
   return (
     <div className={`column ${claseColumna}`}>
@@ -66,6 +68,7 @@ export function Column({
             onDone={onDone}
             onPrint={onPrint}
             onSaveNota={onSaveNota}
+            onAsignarRepartidor={onAsignarRepartidor}
           />
         ))
       )}

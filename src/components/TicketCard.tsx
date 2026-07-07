@@ -28,6 +28,7 @@ interface Props {
   onDone: (id: number) => void;
   onPrint: (id: number) => void;
   onSaveNota: (id: number, nota: string) => void;
+  onAsignarRepartidor?: (id: number) => void;
 }
 
 export function TicketCard({
@@ -41,6 +42,7 @@ export function TicketCard({
   onDone,
   onPrint,
   onSaveNota,
+  onAsignarRepartidor,
 }: Props) {
   const [rechazando, setRechazando] = useState(false);
   const [editandoNota, setEditandoNota] = useState(false);
@@ -140,6 +142,9 @@ export function TicketCard({
 
         <div className="ticket-meta">
           <span>📍 {pedido.direccion}</span>
+          {pedido.repartidorNombre ? (
+            <span>🛵 {pedido.repartidorNombre}</span>
+          ) : null}
         </div>
 
         {editandoNota ? (
@@ -220,13 +225,24 @@ export function TicketCard({
             </button>
           )}
           {columna === "listo" && (
-            <button
-              className="taction done"
-              disabled={busy}
-              onClick={() => onDone(pedido.id)}
-            >
-              Entregado
-            </button>
+            <>
+              {onAsignarRepartidor ? (
+                <button
+                  className="taction ready"
+                  disabled={busy}
+                  onClick={() => onAsignarRepartidor(pedido.id)}
+                >
+                  {pedido.repartidorNombre ? "Cambiar repartidor" : "Asignar repartidor"}
+                </button>
+              ) : null}
+              <button
+                className="taction done"
+                disabled={busy}
+                onClick={() => onDone(pedido.id)}
+              >
+                Entregado
+              </button>
+            </>
           )}
         </div>
       </div>

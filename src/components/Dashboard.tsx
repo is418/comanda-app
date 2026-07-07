@@ -18,6 +18,7 @@ import { Toolbar } from "./Toolbar";
 import { Column } from "./Column";
 import { PrintModal } from "./PrintModal";
 import { EstacionesModal } from "./EstacionesModal";
+import { AsignarRepartidorModal } from "./AsignarRepartidorModal";
 import { esAppNativa } from "@/lib/printer";
 import { imprimirEnCocina, imprimirEnCaja } from "@/lib/imprimirPedido";
 
@@ -37,6 +38,7 @@ export function Dashboard() {
   const [printId, setPrintId] = useState<number | null>(null);
   const [conectado, setConectado] = useState(false);
   const [mostrarEstaciones, setMostrarEstaciones] = useState(false);
+  const [repartidorPedidoId, setRepartidorPedidoId] = useState<number | null>(null);
 
   const idsConocidos = useRef<Set<number>>(new Set());
   const primeraCarga = useRef(true);
@@ -178,6 +180,7 @@ export function Dashboard() {
 
   const ventaTotal = pedidos.reduce((s, p) => s + (p.total || 0), 0);
   const pedidoImprimir = pedidos.find((p) => p.id === printId) || null;
+  const pedidoRepartidor = pedidos.find((p) => p.id === repartidorPedidoId) || null;
   const productosConocidos = useMemo(() => {
     const set = new Set<string>();
     pedidos.forEach((p) => p.items.forEach((i) => set.add(i.producto)));
@@ -271,6 +274,7 @@ export function Dashboard() {
             onDone={onDone}
             onPrint={setPrintId}
             onSaveNota={onSaveNota}
+            onAsignarRepartidor={setRepartidorPedidoId}
           />
         </div>
       )}
@@ -292,6 +296,12 @@ export function Dashboard() {
           onClose={() => setMostrarEstaciones(false)}
         />
       ) : null}
+
+      <AsignarRepartidorModal
+        pedido={pedidoRepartidor}
+        onClose={() => setRepartidorPedidoId(null)}
+        onAsignado={() => cargar()}
+      />
     </>
   );
 }

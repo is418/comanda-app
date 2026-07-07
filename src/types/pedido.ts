@@ -39,8 +39,18 @@ export interface PedidoRow {
   hora_listo: string | null;
   hora_entregado: string | null;
   notas: string | null;
+  repartidor_nombre: string | null;
+  repartidor_telefono: string | null;
+  repartidor_asignado_en: string | null;
   created_at: string;
   updated_at: string | null;
+}
+
+export interface Repartidor {
+  id: number;
+  nombre: string;
+  telefono: string;
+  activo: boolean;
 }
 
 /** Forma que usan los componentes de UI (misma que ya usaba el HTML original). */
@@ -54,10 +64,15 @@ export interface Pedido {
   entregadoEn: string | null;
   cliente: string;
   telefono: string;
+  telefonoCompleto: string;
   items: { cantidad: number; producto: string; mods: string }[];
   total: number;
   direccion: string;
   nota: string;
+  ubicacionLat: number | null;
+  ubicacionLng: number | null;
+  repartidorNombre: string | null;
+  repartidorTelefono: string | null;
 }
 
 export function mapPedidoRow(row: PedidoRow): Pedido {
@@ -71,6 +86,7 @@ export function mapPedidoRow(row: PedidoRow): Pedido {
     entregadoEn: row.hora_entregado,
     cliente: row.nombre_cliente || `Cliente ${row.telefono_cliente.slice(-4)}`,
     telefono: row.telefono_cliente.slice(-4),
+    telefonoCompleto: row.telefono_cliente,
     items: (row.items || []).map((i) => ({
       cantidad: i.cantidad,
       producto: i.producto,
@@ -81,5 +97,9 @@ export function mapPedidoRow(row: PedidoRow): Pedido {
       row.direccion_texto ||
       (row.ubicacion_lat ? "Ubicación compartida en mapa" : "Sin dirección"),
     nota: row.notas || "",
+    ubicacionLat: row.ubicacion_lat,
+    ubicacionLng: row.ubicacion_lng,
+    repartidorNombre: row.repartidor_nombre,
+    repartidorTelefono: row.repartidor_telefono,
   };
 }
